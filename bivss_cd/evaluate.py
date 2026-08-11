@@ -9,7 +9,7 @@ from PIL import Image
 from .config import BiVSSConfig
 from .datasets import PairedChangeDataset
 from .infer import save_mask
-from .metrics import binary_metrics, multiclass_metrics
+from .metrics import BinaryConfusion, binary_metrics, multiclass_metrics
 from .model import BiVSSCD
 
 
@@ -40,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--checkpoint", type=str)
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--force", action="store_true", help="Recompute and overwrite all selected samples.")
     return parser
 
 
@@ -50,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     predictions.mkdir(exist_ok=True)
     csv_path = args.output_dir / "per_sample.csv"
     completed: set[str] = set()
-    if csv_path.is_file():
+    if csv_path.is_file() and not args.force:
         with csv_path.open("r", encoding="utf-8", newline="") as stream:
             completed = {row["name"] for row in csv.DictReader(stream)}
 
@@ -63,8 +64,9 @@ def main(argv: list[str] | None = None) -> int:
     model = BiVSSCD(config)
     binary_rows: list[dict[str, object]] = []
     fieldnames = ["name", "iou", "f1", "precision", "recall", "oa"]
-    append = csv_path.is_file() and csv_path.stat().st_size > 0
-    with csv_path.open("a", encoding="utf-8", newline="") as stream:
+    append = not args.force and csv_path.is_file() and csv_path.stat().st_size > 0
+    csv_mode = "a" if append else "w"
+    with csv_path.open(csv_mode, encoding="utf-8", newline="") as stream:
         writer = csv.DictWriter(stream, fieldnames=fieldnames)
         if not append:
             writer.writeheader()
@@ -86,14 +88,30 @@ def main(argv: list[str] | None = None) -> int:
             stream.flush()
             binary_rows.append(row)
 
-    with csv_path.open("r", encoding="utf-8", newline="") as stream:
-        all_rows = list(csv.DictReader(stream))
+    global_confusion = BinaryConfusion()
+    evaluated_names: list[str] = []
+    for pair in pairs:
+        prediction_path = predictions / pair.name
+        if not prediction_path.is_file():
+            continue
+        prediction = np.asarray(Image.open(prediction_path))
+        target = np.asarray(Image.open(pair.label))
+        if prediction.ndim == 3:
+            prediction = prediction[..., 0]
+        if target.ndim == 3:
+            target = target[..., 0]
+        global_confusion.update(prediction, target)
+        evaluated_names.append(pair.name)
+
     summary: dict[str, object] = {
         "dataset": args.dataset,
-        "samples": len(all_rows),
-        "binary": {
-            key: float(np.mean([float(row[key]) for row in all_rows]))
-            for key in fieldnames[1:]
+        "samples": len(evaluated_names),
+        "binary": global_confusion.metrics().to_dict(),
+        "confusion": {
+            "tp": global_confusion.tp,
+            "fp": global_confusion.fp,
+            "fn": global_confusion.fn,
+            "tn": global_confusion.tn,
         },
         "config": config.to_dict(),
         "prompts": prompts,

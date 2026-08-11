@@ -111,6 +111,12 @@ the CSV. Binary results include IoU, F1, precision, recall, and overall accuracy
 SECOND additionally reports per-class and mean IoU/F1 when semantic labels are
 available.
 
+The metrics in `summary.json` are computed from one confusion matrix accumulated
+over every evaluated pixel, matching the paper's official folder evaluator.
+They are not the arithmetic mean of the per-image metrics in `per_sample.csv`.
+After changing an algorithm version, pass `--force` or use a new output
+directory so predictions from an older run are not reused.
+
 ## Configuration
 
 The repository contains the following paper configurations:

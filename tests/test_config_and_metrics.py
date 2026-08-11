@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 
 from bivss_cd.config import BiVSSConfig
-from bivss_cd.metrics import binary_metrics, multiclass_metrics
+from bivss_cd.metrics import BinaryConfusion, binary_metrics, multiclass_metrics
 from bivss_cd.sam3_adapter import verify_sam3_checkout
 
 
@@ -60,6 +60,16 @@ def test_binary_metrics_known_values():
     assert result.precision == pytest.approx(0.5)
     assert result.recall == pytest.approx(0.5)
     assert result.oa == pytest.approx(0.5)
+
+
+def test_global_confusion_is_not_mean_of_per_image_metrics():
+    confusion = BinaryConfusion()
+    confusion.update(np.ones((1, 1)), np.ones((1, 1)))
+    confusion.update(np.ones((3, 3)), np.zeros((3, 3)))
+    result = confusion.metrics()
+    assert result.iou == pytest.approx(0.1)
+    assert result.precision == pytest.approx(0.1)
+    assert result.recall == pytest.approx(1.0)
 
 
 def test_multiclass_metrics_perfect_prediction():

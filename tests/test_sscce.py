@@ -28,3 +28,22 @@ def test_shape_change_produces_symmetric_difference():
     changes = semantic_spatial_changes({1: item(first)}, {1: item(second)}, first.shape, 0.5)
     expected = np.logical_xor(first, second).astype(np.uint8)
     np.testing.assert_array_equal(changes[1], expected)
+
+
+def test_v4_global_context_eliminates_id_drift():
+    left = np.zeros((8, 8), dtype=np.uint8)
+    right = np.zeros((8, 8), dtype=np.uint8)
+    left[1:3, 1:3] = 1
+    right[5, 5] = 1
+    # Other IDs explain both masks globally. v4 therefore treats the dissimilar
+    # same-ID pair as identity drift instead of a real change.
+    anchor = {
+        1: {"mask": left, "box": np.array([1 / 8, 1 / 8, 2 / 8, 2 / 8])},
+        2: {"mask": right, "box": np.array([5 / 8, 5 / 8, 2 / 8, 2 / 8])},
+    }
+    propagated = {
+        1: {"mask": right, "box": np.array([5 / 8, 5 / 8, 2 / 8, 2 / 8])},
+        2: {"mask": left, "box": np.array([1 / 8, 1 / 8, 2 / 8, 2 / 8])},
+    }
+    changes = semantic_spatial_changes(anchor, propagated, left.shape, 0.3)
+    assert changes == {}

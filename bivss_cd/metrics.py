@@ -16,15 +16,51 @@ class BinaryMetrics:
         return {name: float(getattr(self, name)) for name in self.__dataclass_fields__}
 
 
-def binary_metrics(prediction: Any, target: Any) -> BinaryMetrics:
+@dataclass
+class BinaryConfusion:
+    """Global confusion counts used by the paper's folder evaluator."""
+
+    tp: int = 0
+    fp: int = 0
+    fn: int = 0
+    tn: int = 0
+
+    def update(self, prediction: Any, target: Any) -> None:
+        counts = binary_confusion(prediction, target)
+        self.tp += counts.tp
+        self.fp += counts.fp
+        self.fn += counts.fn
+        self.tn += counts.tn
+
+    def metrics(self) -> BinaryMetrics:
+        epsilon = 1e-7
+        precision = self.tp / (self.tp + self.fp + epsilon)
+        recall = self.tp / (self.tp + self.fn + epsilon)
+        return BinaryMetrics(
+            iou=self.tp / (self.tp + self.fp + self.fn + epsilon),
+            f1=2 * precision * recall / (precision + recall + epsilon),
+            precision=precision,
+            recall=recall,
+            oa=(self.tp + self.tn) / (self.tp + self.fp + self.fn + self.tn + epsilon),
+        )
+
+
+def binary_confusion(prediction: Any, target: Any) -> BinaryConfusion:
     pred = np.asarray(prediction) > 0
     truth = np.asarray(target) > 0
     if pred.shape != truth.shape:
         raise ValueError(f"prediction shape {pred.shape} differs from target shape {truth.shape}")
-    tp = int(np.logical_and(pred, truth).sum())
-    fp = int(np.logical_and(pred, ~truth).sum())
-    fn = int(np.logical_and(~pred, truth).sum())
-    tn = int(np.logical_and(~pred, ~truth).sum())
+    return BinaryConfusion(
+        tp=int(np.logical_and(pred, truth).sum()),
+        fp=int(np.logical_and(pred, ~truth).sum()),
+        fn=int(np.logical_and(~pred, truth).sum()),
+        tn=int(np.logical_and(~pred, ~truth).sum()),
+    )
+
+
+def binary_metrics(prediction: Any, target: Any) -> BinaryMetrics:
+    counts = binary_confusion(prediction, target)
+    tp, fp, fn, tn = counts.tp, counts.fp, counts.fn, counts.tn
     safe = lambda numerator, denominator, empty=0.0: numerator / denominator if denominator else empty
     return BinaryMetrics(
         iou=safe(tp, tp + fp + fn, 1.0),
