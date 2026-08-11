@@ -21,12 +21,12 @@ class PairedChangeDataset:
         "levir-cd_512": ("A", "B", "label"),
         "whu-cd": ("A", "B", "label"),
         "second": ("im1", "im2", "label"),
-        "second_building": ("im1", "im2", "label"),
-        "second_tree": ("im1", "im2", "label"),
-        "second_water": ("im1", "im2", "label"),
-        "second_low_veg": ("im1", "im2", "label"),
-        "second_surface": ("im1", "im2", "label"),
-        "second_playground": ("im1", "im2", "label"),
+        "second_building": ("im1", "im2", "building_label"),
+        "second_tree": ("im1", "im2", "tree_label"),
+        "second_water": ("im1", "im2", "water_label"),
+        "second_low_veg": ("im1", "im2", "low_vegetation_label"),
+        "second_surface": ("im1", "im2", "ground_label"),
+        "second_playground": ("im1", "im2", "playground_label"),
     }
 
     def __init__(self, root: str | Path, dataset: str):

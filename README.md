@@ -86,7 +86,13 @@ SECOND
 └── test
     ├── im1
     ├── im2
-    └── label
+    ├── label
+    ├── building_label
+    ├── ground_label
+    ├── low_vegetation_label
+    ├── playground_label
+    ├── tree_label
+    └── water_label
 ```
 
 Binary building-change evaluation:
@@ -104,6 +110,11 @@ Each SECOND category must be evaluated with its matching configuration because
 the paper uses different thresholds for different semantic categories. The
 category outputs can subsequently be combined into a semantic change map; class
 ID 0 is background/no-change.
+
+The category adapters select labels automatically: `SECOND_building` uses
+`building_label`, `SECOND_surface` uses `ground_label`, `SECOND_low_veg` uses
+`low_vegetation_label`, and the playground, tree, and water variants use their
+correspondingly named label directories.
 
 Evaluation writes predictions, `per_sample.csv`, `summary.json`, and
 `evaluation.log`. Re-running the same command skips samples already present in
