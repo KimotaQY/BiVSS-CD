@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bivss-cd"
+version = "0.1.0"
+description = "Training-free open-vocabulary remote sensing change detection with bidirectional semantic object propagation"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Yuan Qin"}]
+dependencies = [
+  "numpy>=1.24",
+  "Pillow>=9.4",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+sam3 = ["torch>=2.7", "torchvision", "opencv-python"]
+test = ["pytest>=7.4"]
+
+[project.scripts]
+bivss-cd = "bivss_cd.infer:main"
+bivss-cd-eval = "bivss_cd.evaluate:main"
+
+[tool.setuptools.packages.find]
+include = ["bivss_cd*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

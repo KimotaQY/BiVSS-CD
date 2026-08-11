@@ -1,0 +1,9 @@
+checkpoint: null
+device: cuda
+prompts: [tree, forest]
+iou_threshold: 0.10
+score_threshold_detection: 0.15
+new_det_thresh: 0.20
+use_decoupled_selection: false
+consensus: intersection
+save_intermediates: false

@@ -1,0 +1,9 @@
+checkpoint: null
+device: cuda
+prompts: [roof]
+iou_threshold: 0.30
+score_threshold_detection: 0.55
+new_det_thresh: 0.60
+use_decoupled_selection: false
+consensus: intersection
+save_intermediates: false

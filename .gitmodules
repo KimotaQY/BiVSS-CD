@@ -1,0 +1,4 @@
+[submodule "sam3"]
+	path = third_party/sam3
+	url = git@github.com:KimotaQY/sam3-cd-no-training.git
+	branch = main
