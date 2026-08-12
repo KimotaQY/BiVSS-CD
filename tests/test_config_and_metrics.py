@@ -14,6 +14,8 @@ def test_config_validation():
         BiVSSConfig(score_threshold_detection=0.7, new_det_thresh=0.6)
     with pytest.raises(ValueError, match="CUDA"):
         BiVSSConfig(checkpoint="weights.pt", device="cpu")
+    with pytest.raises(ValueError, match="gpus_to_use"):
+        BiVSSConfig(gpus_to_use=[])
 
 
 def test_dataset_config_loads_prompts(tmp_path):

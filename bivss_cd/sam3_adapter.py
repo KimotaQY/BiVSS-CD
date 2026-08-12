@@ -48,6 +48,7 @@ def build_predictor(config: BiVSSConfig) -> Any:
     verify_sam3_checkout(project_root / "third_party" / "sam3")
 
     try:
+        import torch
         from sam3.model_builder import build_sam3_video_predictor
     except ImportError as exc:
         raise RuntimeError(
@@ -60,7 +61,14 @@ def build_predictor(config: BiVSSConfig) -> Any:
         "score_threshold_detection": config.score_threshold_detection,
         "new_det_thresh": config.new_det_thresh,
         "use_decoupled_selection": config.use_decoupled_selection,
+        "gpus_to_use": (
+            list(range(torch.cuda.device_count()))
+            if config.gpus_to_use == "all"
+            else list(config.gpus_to_use)
+        ),
     }
+    if not kwargs["gpus_to_use"]:
+        raise RuntimeError("no CUDA devices are available to build the SAM3 predictor")
     signature = inspect.signature(build_sam3_video_predictor)
     if not any(p.kind is inspect.Parameter.VAR_KEYWORD for p in signature.parameters.values()):
         unsupported = set(kwargs) - set(signature.parameters)

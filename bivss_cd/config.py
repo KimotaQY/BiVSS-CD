@@ -10,6 +10,7 @@ class BiVSSConfig:
     checkpoint: str | None = None
     device: str = "cuda"
     prompts: tuple[str, ...] = ()
+    gpus_to_use: str | tuple[int, ...] = "all"
     iou_threshold: float = 0.30
     score_threshold_detection: float = 0.55
     new_det_thresh: float = 0.60
@@ -22,6 +23,16 @@ class BiVSSConfig:
         if any(not isinstance(prompt, str) or not prompt.strip() for prompt in prompts):
             raise ValueError("prompts must contain only non-empty strings")
         object.__setattr__(self, "prompts", prompts)
+        gpus = self.gpus_to_use
+        if isinstance(gpus, list):
+            gpus = tuple(gpus)
+            object.__setattr__(self, "gpus_to_use", gpus)
+        if gpus != "all" and (
+            not isinstance(gpus, tuple)
+            or not gpus
+            or any(not isinstance(gpu, int) or gpu < 0 for gpu in gpus)
+        ):
+            raise ValueError("gpus_to_use must be 'all' or a non-empty list of GPU indices")
         for name in ("iou_threshold", "score_threshold_detection", "new_det_thresh"):
             value = getattr(self, name)
             if not 0.0 <= value <= 1.0:
@@ -43,6 +54,8 @@ class BiVSSConfig:
         values.update({k: v for k, v in overrides.items() if v is not None})
         if "prompts" in values:
             values["prompts"] = tuple(values["prompts"])
+        if isinstance(values.get("gpus_to_use"), list):
+            values["gpus_to_use"] = tuple(values["gpus_to_use"])
         return cls(**values)
 
     def to_dict(self) -> dict[str, Any]:

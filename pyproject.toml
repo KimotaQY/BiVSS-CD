@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bivss-cd"
-version = "0.1.1"
+version = "0.1.2"
 description = "Training-free open-vocabulary remote sensing change detection with bidirectional semantic object propagation"
 readme = "README.md"
 requires-python = ">=3.10"

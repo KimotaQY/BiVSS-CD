@@ -1,6 +1,7 @@
 checkpoint: null
 device: cuda
 prompts: [tree, forest]
+gpus_to_use: all
 iou_threshold: 0.10
 score_threshold_detection: 0.15
 new_det_thresh: 0.20
