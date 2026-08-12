@@ -20,8 +20,12 @@ def pseudo_video(image_t1: str | Path, image_t2: str | Path, reverse: bool = Fal
         images.reverse()
     with TemporaryDirectory(prefix="bivss_cd_") as directory:
         root = Path(directory)
-        # Match the research `gen_frame_v2` path exactly: 1-based filenames and
-        # Pillow's default subsampling choice at JPEG quality 100.
-        for index, image in enumerate(images, start=1):
-            image.save(root / f"{index}.jpg", format="JPEG", quality=100)
+        # v0.1.1-compatible inference path, retained for score reproduction.
+        for index, image in enumerate(images):
+            image.save(
+                root / f"{index}.jpg",
+                format="JPEG",
+                quality=100,
+                subsampling=0,
+            )
         yield root

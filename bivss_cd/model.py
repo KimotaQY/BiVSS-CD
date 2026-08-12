@@ -73,23 +73,12 @@ class BiVSSCD:
 
         forward = self._predict_direction(image_t1, image_t2, prompt_list, False, shape)
         backward = self._predict_direction(image_t1, image_t2, prompt_list, True, shape)
-        # Preserve per-prompt consensus for semantic inspection.
         class_masks = {
             prompt: consensus_fusion(forward[prompt], backward[prompt], self.config.consensus)
             for prompt in prompt_list
         }
-        # Paper behavior (`baseline_bi_ssccev4`): masks from every prompt are
-        # accumulated within each direction, then both directional counts are
-        # added and pixels with at least two votes are retained. This differs
-        # from intersecting each prompt first and then taking their union when
-        # more than one prompt is used.
-        vote_count = np.zeros(shape, dtype=np.int16)
-        for prompt in prompt_list:
-            vote_count += forward[prompt].astype(np.int16)
-            vote_count += backward[prompt].astype(np.int16)
-        threshold = 2 if self.config.consensus == "intersection" else 1
-        binary = (vote_count >= threshold).astype(np.uint8)
+        binary = np.zeros(shape, dtype=np.uint8)
+        for mask in class_masks.values():
+            binary |= mask
         intermediates = {"forward": forward, "backward": backward} if self.config.save_intermediates else {}
-        if self.config.save_intermediates:
-            intermediates["vote_count"] = vote_count
         return ChangeResult(binary_mask=binary, class_masks=class_masks, intermediates=intermediates)

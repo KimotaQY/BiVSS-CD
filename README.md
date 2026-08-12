@@ -59,8 +59,9 @@ python -m bivss_cd.infer \
 ```
 
 Multiple open-vocabulary categories can be supplied after `--prompts`.
-For exact paper reproduction, all prompt masks from both temporal directions
-vote jointly and pixels supported by at least two votes are retained.
+The current experimental inference path is compatible with v0.1.1: each prompt
+first applies bidirectional consensus, then the per-prompt change masks are
+combined by union. It also writes zero-based, 4:4:4 JPEG pseudo-video frames.
 
 ```python
 from bivss_cd import BiVSSCD, BiVSSConfig
@@ -159,8 +160,9 @@ Important parameters:
 - `score_threshold_detection`: SAM3 detection threshold.
 - `new_det_thresh`: threshold for introducing a new tracked object.
 - `use_decoupled_selection`: use independent tracker states for new objects.
-- `gpus_to_use`: `all` reproduces `test_script.py`; use a YAML list such as
-  `[0]` to restrict inference to selected GPUs.
+- `gpus_to_use`: retained in YAML for configuration compatibility. The temporary
+  v0.1.1-compatible inference path leaves GPU selection to SAM3 and does not
+  pass this value to its builder.
 - `consensus`: `intersection` for the paper method or `union` for analysis.
 
 The default inference backend requires CUDA. CPU mode exists only for unit tests
