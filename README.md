@@ -34,6 +34,9 @@ git submodule update --init --recursive
 The submodule is pinned to the BiVSS-CD SAM3 fork because the method requires
 the fork's decoupled object-selection interface. Do not replace it with an
 arbitrary SAM3 checkout. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+At startup, BiVSS-CD verifies that Python actually imports `sam3` from this
+submodule and fails with the imported and expected paths if another editable or
+site-packages installation shadows it.
 
 ## Model weights
 
@@ -129,6 +132,9 @@ over every evaluated pixel, matching the paper's official folder evaluator.
 They are not the arithmetic mean of the per-image metrics in `per_sample.csv`.
 After changing an algorithm version, pass `--force` or use a new output
 directory so predictions from an older run are not reused.
+The evaluator writes `run_manifest.json` and refuses to resume when the
+BiVSS-CD version, dataset, prompts, or configuration differs from the existing
+run.
 
 ## Configuration
 

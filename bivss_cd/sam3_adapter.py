@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import inspect
+import hashlib
+import subprocess
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -15,6 +17,59 @@ REQUIRED_PREDICTOR_PARAMETERS = {
     "new_det_thresh",
     "use_decoupled_selection",
 }
+
+
+def runtime_fingerprint(config: BiVSSConfig) -> dict[str, Any]:
+    """Return reproducibility-critical runtime and model identifiers."""
+    import PIL
+    import sam3
+    import torch
+    from PIL import features
+
+    project_root = Path(__file__).resolve().parents[1]
+    checkout = verify_sam3_checkout(project_root / "third_party" / "sam3")
+    imported_sam3 = _verify_imported_sam3(sam3, checkout)
+
+    checkpoint = Path(config.checkpoint).expanduser().resolve() if config.checkpoint else None
+    digest = None
+    if checkpoint and checkpoint.is_file():
+        hasher = hashlib.sha256()
+        with checkpoint.open("rb") as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                hasher.update(chunk)
+        digest = hasher.hexdigest()
+    try:
+        revision = subprocess.run(
+            ["git", "-C", str(checkout), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        revision = None
+    return {
+        "sam3_path": str(imported_sam3),
+        "sam3_revision": revision,
+        "checkpoint_sha256": digest,
+        "pillow": PIL.__version__,
+        "libjpeg": features.version_codec("jpg"),
+        "torch": torch.__version__,
+        "cuda": torch.version.cuda,
+        "gpus": [torch.cuda.get_device_name(index) for index in range(torch.cuda.device_count())],
+    }
+
+
+def _verify_imported_sam3(sam3_module: Any, checkout: Path) -> Path:
+    imported_sam3 = Path(sam3_module.__file__).resolve().parent
+    expected_sam3 = (checkout / "sam3").resolve()
+    if imported_sam3 != expected_sam3:
+        raise RuntimeError(
+            "the imported SAM3 package does not come from BiVSS-CD's pinned "
+            f"submodule: imported {imported_sam3}, expected {expected_sam3}. "
+            "Uninstall the conflicting package and run "
+            "`pip install -e third_party/sam3`."
+        )
+    return imported_sam3
 
 
 def verify_sam3_checkout(root: str | Path) -> Path:
@@ -48,6 +103,7 @@ def build_predictor(config: BiVSSConfig) -> Any:
     verify_sam3_checkout(project_root / "third_party" / "sam3")
 
     try:
+        import sam3
         import torch
         from sam3.model_builder import build_sam3_video_predictor
     except ImportError as exc:
@@ -55,6 +111,8 @@ def build_predictor(config: BiVSSConfig) -> Any:
             "SAM3 is not importable. Initialize the submodule and install it with "
             "`pip install -e third_party/sam3`."
         ) from exc
+
+    _verify_imported_sam3(sam3, project_root / "third_party" / "sam3")
 
     kwargs = {
         "checkpoint_path": str(checkpoint),

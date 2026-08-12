@@ -1,10 +1,11 @@
 import numpy as np
 import pytest
 from pathlib import Path
+from types import SimpleNamespace
 
 from bivss_cd.config import BiVSSConfig
 from bivss_cd.metrics import BinaryConfusion, binary_metrics, multiclass_metrics
-from bivss_cd.sam3_adapter import verify_sam3_checkout
+from bivss_cd.sam3_adapter import _verify_imported_sam3, verify_sam3_checkout
 
 
 def test_config_validation():
@@ -84,3 +85,16 @@ def test_multiclass_metrics_perfect_prediction():
 def test_pinned_sam3_checkout_exposes_required_interface():
     root = __import__("pathlib").Path(__file__).resolve().parents[1]
     assert verify_sam3_checkout(root / "third_party" / "sam3").name == "sam3"
+
+
+def test_imported_sam3_must_come_from_pinned_checkout(tmp_path):
+    checkout = tmp_path / "third_party" / "sam3"
+    expected = checkout / "sam3"
+    expected.mkdir(parents=True)
+    module = SimpleNamespace(__file__=str(expected / "__init__.py"))
+    assert _verify_imported_sam3(module, checkout) == expected.resolve()
+
+    conflicting = tmp_path / "site-packages" / "sam3" / "__init__.py"
+    conflicting.parent.mkdir(parents=True)
+    with pytest.raises(RuntimeError, match="does not come from"):
+        _verify_imported_sam3(SimpleNamespace(__file__=str(conflicting)), checkout)

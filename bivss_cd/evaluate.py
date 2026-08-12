@@ -1,16 +1,19 @@
 import argparse
 import csv
+import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
 
+from . import __version__
 from .config import BiVSSConfig
 from .datasets import PairedChangeDataset
 from .infer import save_mask
 from .metrics import BinaryConfusion, binary_metrics, multiclass_metrics
 from .model import BiVSSCD
+from .sam3_adapter import runtime_fingerprint
 
 
 def class_map(class_masks: dict[str, np.ndarray], prompts: list[str]) -> np.ndarray:
@@ -61,6 +64,29 @@ def main(argv: list[str] | None = None) -> int:
     prompts = args.prompts or list(config.prompts)
     if not prompts:
         raise SystemExit("no prompts supplied; set prompts in the config or pass --prompts")
+    runtime = runtime_fingerprint(config)
+    run_spec = {
+        "bivss_cd_version": __version__,
+        "dataset": args.dataset,
+        "config": config.to_dict(),
+        "prompts": prompts,
+        "runtime": runtime,
+    }
+    run_id = hashlib.sha256(
+        json.dumps(run_spec, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    manifest_path = args.output_dir / "run_manifest.json"
+    if manifest_path.is_file() and not args.force:
+        previous = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if previous.get("run_id") != run_id:
+            raise SystemExit(
+                "the output directory contains predictions from a different "
+                "BiVSS-CD version or configuration; pass --force or choose a "
+                "new --output-dir"
+            )
+    manifest_path.write_text(
+        json.dumps({"run_id": run_id, **run_spec}, indent=2), encoding="utf-8"
+    )
     model = BiVSSCD(config)
     binary_rows: list[dict[str, object]] = []
     fieldnames = ["name", "iou", "f1", "precision", "recall", "oa"]
@@ -115,6 +141,7 @@ def main(argv: list[str] | None = None) -> int:
         },
         "config": config.to_dict(),
         "prompts": prompts,
+        "runtime": runtime,
     }
     if args.dataset == "SECOND":
         predictions_all, targets_all = [], []
