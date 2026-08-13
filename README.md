@@ -32,7 +32,7 @@ conda activate bivss-cd
 ```bash
 git clone --recurse-submodules https://github.com/KimotaQY/BiVSS-CD.git
 cd BiVSS-CD
-pip install -e .
+pip install -e ".[sam3]"
 pip install -e third_party/sam3
 ```
 
@@ -51,6 +51,12 @@ arbitrary SAM3 checkout. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 At startup, BiVSS-CD verifies that Python actually imports `sam3` from this
 submodule and fails with the imported and expected paths if another editable or
 site-packages installation shadows it.
+
+Verify the installation before downloading or evaluating a dataset:
+
+```bash
+python -c "import einops, psutil, pycocotools, sam3; print(sam3.__file__)"
+```
 
 ## Model weights
 
@@ -176,7 +182,7 @@ Important parameters:
 - `new_det_thresh`: threshold for introducing a new tracked object.
 - `use_decoupled_selection`: use independent tracker states for new objects.
 - `use_instance_level_cd`: optionally enable the instance-level
-  appeared/disappeared-object branch. The verified paper configurations disable
+  appeared/disappeared-object branch. The verified paper configurations enable
   it.
 - `instance_iou_threshold`, `t12_min_instance_area`, and
   `cd_min_instance_area`: verified defaults are `0.30`, `0`, and `0`.

@@ -58,7 +58,7 @@ def test_paper_dataset_configs(filename, prompts, thresholds):
         config.new_det_thresh,
     ) == thresholds
     assert config.use_decoupled_selection is False
-    assert config.use_instance_level_cd is False
+    assert config.use_instance_level_cd is True
     assert config.instance_iou_threshold == 0.30
     assert config.t12_min_instance_area == 0
     assert config.cd_min_instance_area == 0

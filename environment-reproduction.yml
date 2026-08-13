@@ -15,3 +15,6 @@ dependencies:
       - timm==1.0.22
       - PyYAML==6.0.3
       - opencv-python==4.11.0.86
+      - einops==0.8.1
+      - pycocotools==2.0.11
+      - psutil==7.2.1

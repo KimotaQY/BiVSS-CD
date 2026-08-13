@@ -17,7 +17,14 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-sam3 = ["torch>=2.7", "torchvision", "opencv-python"]
+sam3 = [
+  "torch>=2.7",
+  "torchvision",
+  "opencv-python",
+  "einops>=0.8",
+  "pycocotools>=2.0.7",
+  "psutil>=5.9",
+]
 test = ["pytest>=7.4"]
 
 [project.scripts]

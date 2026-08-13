@@ -33,7 +33,7 @@ Create the verified environment and install BiVSS-CD and its pinned SAM3 fork:
 ```bash
 conda env create -f environment-reproduction.yml
 conda activate bivss-cd
-pip install -e .
+pip install -e ".[sam3]"
 pip install -e third_party/sam3
 ```
 
