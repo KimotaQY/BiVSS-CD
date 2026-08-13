@@ -6,7 +6,7 @@ iou_threshold: 0.10
 score_threshold_detection: 0.20
 new_det_thresh: 0.30
 use_decoupled_selection: false
-use_instance_level_cd: true
+use_instance_level_cd: false
 instance_iou_threshold: 0.30
 t12_min_instance_area: 0
 cd_min_instance_area: 0
