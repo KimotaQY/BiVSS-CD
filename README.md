@@ -18,12 +18,26 @@ consensus retains changes confirmed from both temporal directions.
 Requirements: Python 3.10+, a CUDA-capable PyTorch environment supported by
 SAM3, and Git.
 
+Paper numbers were reproduced with Python 3.12.12, PyTorch 2.7.0+cu126,
+Pillow 12.0.0/libjpeg 6.2, NumPy 1.26.4, timm 1.0.22, and an NVIDIA L20. Because
+the inference path creates temporary JPEG frames and predictions can be
+sensitive to dependency versions, use the provided environment for exact
+reproduction:
+
+```bash
+conda env create -f environment-reproduction.yml
+conda activate bivss-cd
+```
+
 ```bash
 git clone --recurse-submodules https://github.com/KimotaQY/BiVSS-CD.git
 cd BiVSS-CD
 pip install -e .
 pip install -e third_party/sam3
 ```
+
+See [docs/reproducibility.md](docs/reproducibility.md) for the complete verified
+runtime, checkpoint checksum, import-path checks, and environment notes.
 
 If the repository was cloned without submodules:
 
@@ -161,8 +175,9 @@ Important parameters:
 - `score_threshold_detection`: SAM3 detection threshold.
 - `new_det_thresh`: threshold for introducing a new tracked object.
 - `use_decoupled_selection`: use independent tracker states for new objects.
-- `use_instance_level_cd`: enable the instance-level appeared/disappeared-object
-  branch used by the verified paper implementation (default: `true`).
+- `use_instance_level_cd`: optionally enable the instance-level
+  appeared/disappeared-object branch. The verified paper configurations disable
+  it.
 - `instance_iou_threshold`, `t12_min_instance_area`, and
   `cd_min_instance_area`: verified defaults are `0.30`, `0`, and `0`.
 - `gpus_to_use`: passed directly to the SAM3 builder. Paper configurations use

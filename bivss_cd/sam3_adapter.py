@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import hashlib
 import subprocess
+import sys
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -23,7 +24,9 @@ def runtime_fingerprint(config: BiVSSConfig) -> dict[str, Any]:
     """Return reproducibility-critical runtime and model identifiers."""
     import PIL
     import sam3
+    import timm
     import torch
+    import torchvision
     from PIL import features
 
     project_root = Path(__file__).resolve().parents[1]
@@ -52,10 +55,15 @@ def runtime_fingerprint(config: BiVSSConfig) -> dict[str, Any]:
         "sam3_path": str(imported_sam3),
         "sam3_revision": revision,
         "checkpoint_sha256": digest,
+        "python": sys.version.split()[0],
+        "numpy": np.__version__,
         "pillow": PIL.__version__,
         "libjpeg": features.version_codec("jpg"),
+        "timm": timm.__version__,
         "torch": torch.__version__,
+        "torchvision": torchvision.__version__,
         "cuda": torch.version.cuda,
+        "cudnn": torch.backends.cudnn.version(),
         "gpus": [torch.cuda.get_device_name(index) for index in range(torch.cuda.device_count())],
     }
 
