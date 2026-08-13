@@ -59,9 +59,10 @@ python -m bivss_cd.infer \
 ```
 
 Multiple open-vocabulary categories can be supplied after `--prompts`.
-The current experimental inference path is compatible with v0.1.1: each prompt
-first applies bidirectional consensus, then the per-prompt change masks are
-combined by union. It also writes zero-based, 4:4:4 JPEG pseudo-video frames.
+For paper reproduction, all prompt masks from both temporal directions vote
+jointly and pixels supported by at least two votes are retained. Pseudo-video
+frames use the verified `test_script.py` path: `1.jpg`, `2.jpg`, JPEG quality
+100, and Pillow's default subsampling.
 
 ```python
 from bivss_cd import BiVSSCD, BiVSSConfig
@@ -160,9 +161,12 @@ Important parameters:
 - `score_threshold_detection`: SAM3 detection threshold.
 - `new_det_thresh`: threshold for introducing a new tracked object.
 - `use_decoupled_selection`: use independent tracker states for new objects.
-- `gpus_to_use`: retained in YAML for configuration compatibility. The temporary
-  v0.1.1-compatible inference path leaves GPU selection to SAM3 and does not
-  pass this value to its builder.
+- `use_instance_level_cd`: enable the instance-level appeared/disappeared-object
+  branch used by the verified paper implementation (default: `true`).
+- `instance_iou_threshold`, `t12_min_instance_area`, and
+  `cd_min_instance_area`: verified defaults are `0.30`, `0`, and `0`.
+- `gpus_to_use`: passed directly to the SAM3 builder. Paper configurations use
+  `[0]`, matching the verified `test_script.py --gpu-ids 0` invocation.
 - `consensus`: `intersection` for the paper method or `union` for analysis.
 
 The default inference backend requires CUDA. CPU mode exists only for unit tests

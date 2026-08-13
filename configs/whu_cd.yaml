@@ -1,10 +1,14 @@
 checkpoint: null
 device: cuda
 prompts: [roof]
-gpus_to_use: all
+gpus_to_use: [0]
 iou_threshold: 0.30
 score_threshold_detection: 0.55
 new_det_thresh: 0.60
 use_decoupled_selection: false
+use_instance_level_cd: true
+instance_iou_threshold: 0.30
+t12_min_instance_area: 0
+cd_min_instance_area: 0
 consensus: intersection
 save_intermediates: false

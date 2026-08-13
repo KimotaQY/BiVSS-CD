@@ -48,8 +48,7 @@ class PromptVotePredictor(FakePredictor):
     def handle_stream_request(self, request):
         mask = np.zeros((8, 8), dtype=np.uint8)
         # Both prompts vote for the same pixel in the forward direction. The
-        # backward direction supplies no vote, so v0.1.1's per-prompt
-        # directional consensus rejects it.
+        # verified implementation retains it because the total vote count is 2.
         if self.counter <= 2:
             mask[3, 3] = 1
         empty = {"out_obj_ids": np.array([], dtype=int), "out_binary_masks": np.empty((0, 8, 8))}
@@ -89,13 +88,13 @@ def test_predict_rejects_empty_prompts_and_size_mismatch(tmp_path):
         model.predict(t1, t2, "building")
 
 
-def test_v011_multiple_prompts_require_per_prompt_directional_consensus(tmp_path):
+def test_verified_multiple_prompts_use_cross_direction_vote_count(tmp_path):
     t1, t2 = tmp_path / "t1.png", tmp_path / "t2.png"
     write_image(t1)
     write_image(t2)
     result = BiVSSCD(
         BiVSSConfig(device="cpu"), predictor=PromptVotePredictor()
     ).predict(t1, t2, ["tree", "forest"])
-    assert result.binary_mask[3, 3] == 0
+    assert result.binary_mask[3, 3] == 1
     assert not result.class_masks["tree"].any()
     assert not result.class_masks["forest"].any()

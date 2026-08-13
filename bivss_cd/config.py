@@ -15,6 +15,10 @@ class BiVSSConfig:
     score_threshold_detection: float = 0.55
     new_det_thresh: float = 0.60
     use_decoupled_selection: bool = True
+    use_instance_level_cd: bool = True
+    instance_iou_threshold: float = 0.30
+    t12_min_instance_area: int = 0
+    cd_min_instance_area: int = 0
     consensus: str = "intersection"
     save_intermediates: bool = False
 
@@ -33,12 +37,21 @@ class BiVSSConfig:
             or any(not isinstance(gpu, int) or gpu < 0 for gpu in gpus)
         ):
             raise ValueError("gpus_to_use must be 'all' or a non-empty list of GPU indices")
-        for name in ("iou_threshold", "score_threshold_detection", "new_det_thresh"):
+        for name in (
+            "iou_threshold",
+            "score_threshold_detection",
+            "new_det_thresh",
+            "instance_iou_threshold",
+        ):
             value = getattr(self, name)
             if not 0.0 <= value <= 1.0:
                 raise ValueError(f"{name} must be within [0, 1]")
         if self.new_det_thresh < self.score_threshold_detection:
             raise ValueError("new_det_thresh must not be lower than score_threshold_detection")
+        for name in ("t12_min_instance_area", "cd_min_instance_area"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer")
         if self.consensus not in {"intersection", "union"}:
             raise ValueError("consensus must be 'intersection' or 'union'")
         if self.device == "cpu" and self.checkpoint is not None:

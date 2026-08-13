@@ -17,6 +17,10 @@ def test_config_validation():
         BiVSSConfig(checkpoint="weights.pt", device="cpu")
     with pytest.raises(ValueError, match="gpus_to_use"):
         BiVSSConfig(gpus_to_use=[])
+    with pytest.raises(ValueError, match="instance_iou_threshold"):
+        BiVSSConfig(instance_iou_threshold=1.1)
+    with pytest.raises(ValueError, match="t12_min_instance_area"):
+        BiVSSConfig(t12_min_instance_area=-1)
 
 
 def test_dataset_config_loads_prompts(tmp_path):
@@ -54,6 +58,11 @@ def test_paper_dataset_configs(filename, prompts, thresholds):
         config.new_det_thresh,
     ) == thresholds
     assert config.use_decoupled_selection is False
+    assert config.use_instance_level_cd is True
+    assert config.instance_iou_threshold == 0.30
+    assert config.t12_min_instance_area == 0
+    assert config.cd_min_instance_area == 0
+    assert config.gpus_to_use == (0,)
 
 
 def test_binary_metrics_known_values():

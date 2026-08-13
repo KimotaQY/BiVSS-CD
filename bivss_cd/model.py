@@ -10,7 +10,12 @@ from PIL import Image
 from .config import BiVSSConfig
 from .masks import consensus_fusion
 from .sam3_adapter import SAM3Session, build_predictor, frame_objects
-from .sscce import combine_changes, semantic_spatial_changes
+from .sscce import (
+    combine_changes,
+    filter_change_instances,
+    instance_level_changes,
+    semantic_spatial_changes,
+)
 from .types import ChangeResult
 from .video import pseudo_video
 
@@ -53,7 +58,23 @@ class BiVSSCD:
                     image_shape=shape,
                     iou_threshold=self.config.iou_threshold,
                 )
-                class_masks[prompt] = combine_changes(changes, shape)
+                combined = combine_changes(changes, shape)
+                # The research code enters this branch only when SSCCE returns
+                # at least one object for the current prompt/direction.
+                if changes and self.config.use_instance_level_cd:
+                    instance_changes = instance_level_changes(
+                        frame_objects(first),
+                        frame_objects(last),
+                        image_shape=shape,
+                        overlap_threshold=self.config.instance_iou_threshold,
+                        minimum_object_area=self.config.t12_min_instance_area,
+                    )
+                    combined = np.maximum(combined, instance_changes)
+                if self.config.cd_min_instance_area > 0:
+                    combined = filter_change_instances(
+                        combined, self.config.cd_min_instance_area
+                    )
+                class_masks[prompt] = combined
         return class_masks
 
     def predict(
@@ -77,8 +98,15 @@ class BiVSSCD:
             prompt: consensus_fusion(forward[prompt], backward[prompt], self.config.consensus)
             for prompt in prompt_list
         }
-        binary = np.zeros(shape, dtype=np.uint8)
-        for mask in class_masks.values():
-            binary |= mask
+        # Verified `baseline_bi_ssccev4` behavior: sum every prompt mask inside
+        # both directions, then retain pixels supported by at least two votes.
+        vote_count = np.zeros(shape, dtype=np.int16)
+        for prompt in prompt_list:
+            vote_count += forward[prompt].astype(np.int16)
+            vote_count += backward[prompt].astype(np.int16)
+        threshold = 2 if self.config.consensus == "intersection" else 1
+        binary = (vote_count >= threshold).astype(np.uint8)
         intermediates = {"forward": forward, "backward": backward} if self.config.save_intermediates else {}
+        if self.config.save_intermediates:
+            intermediates["vote_count"] = vote_count
         return ChangeResult(binary_mask=binary, class_masks=class_masks, intermediates=intermediates)

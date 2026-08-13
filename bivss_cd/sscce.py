@@ -5,6 +5,7 @@ This module is a NumPy port of the `merge_masks_v4` path used by the paper's
 to the research implementation because small changes alter the final masks.
 """
 
+from collections import deque
 from collections.abc import Mapping
 from typing import Any
 
@@ -169,4 +170,72 @@ def combine_changes(changes: Mapping[int, np.ndarray], shape: tuple[int, int]) -
     result = np.zeros(shape, dtype=np.uint8)
     for mask in changes.values():
         result = np.maximum(result, binary_mask(mask, shape))
+    return result
+
+
+def _instances(mask: np.ndarray) -> list[np.ndarray]:
+    """Match ``skimage.measure.label(..., connectivity=2)`` without a dependency."""
+    value = binary_mask(mask)
+    height, width = value.shape
+    seen = np.zeros_like(value, dtype=bool)
+    result: list[np.ndarray] = []
+    for y in range(height):
+        for x in range(width):
+            if not value[y, x] or seen[y, x]:
+                continue
+            component = np.zeros_like(value)
+            queue = deque([(y, x)])
+            seen[y, x] = True
+            while queue:
+                cy, cx = queue.popleft()
+                component[cy, cx] = 1
+                for ny in range(max(0, cy - 1), min(height, cy + 2)):
+                    for nx in range(max(0, cx - 1), min(width, cx + 2)):
+                        if value[ny, nx] and not seen[ny, nx]:
+                            seen[ny, nx] = True
+                            queue.append((ny, nx))
+            result.append(component)
+    return result
+
+
+def instance_level_changes(
+    anchor: ObjectMap,
+    propagated: ObjectMap,
+    image_shape: tuple[int, int],
+    overlap_threshold: float = 0.30,
+    minimum_object_area: int = 0,
+) -> np.ndarray:
+    """Port the instance-level branch enabled by default in the verified baseline."""
+    first = _instances(_union_mask(anchor, image_shape))
+    second = _instances(_union_mask(propagated, image_shape))
+    changed = np.zeros(image_shape, dtype=np.uint8)
+
+    def add_unmatched(source: list[np.ndarray], target: list[np.ndarray]) -> None:
+        nonlocal changed
+        for instance in source:
+            area = int(instance.sum())
+            if area == 0 or area < minimum_object_area:
+                continue
+            matched = any(
+                int(np.logical_and(instance, candidate).sum()) / area >= overlap_threshold
+                for candidate in target
+                if np.logical_and(instance, candidate).any()
+            )
+            if not matched:
+                changed = np.maximum(changed, instance)
+
+    add_unmatched(first, second)
+    add_unmatched(second, first)
+    return changed
+
+
+def filter_change_instances(mask: np.ndarray, minimum_area: int) -> np.ndarray:
+    """Filter 8-connected change components like the verified implementation."""
+    value = binary_mask(mask)
+    if minimum_area <= 0:
+        return value
+    result = np.zeros_like(value)
+    for instance in _instances(value):
+        if int(instance.sum()) >= minimum_area:
+            result = np.maximum(result, instance)
     return result

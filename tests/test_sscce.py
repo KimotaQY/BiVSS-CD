@@ -1,6 +1,6 @@
 import numpy as np
 
-from bivss_cd.sscce import combine_changes, semantic_spatial_changes
+from bivss_cd.sscce import combine_changes, instance_level_changes, semantic_spatial_changes
 
 
 def item(mask):
@@ -47,3 +47,28 @@ def test_v4_global_context_eliminates_id_drift():
     }
     changes = semantic_spatial_changes(anchor, propagated, left.shape, 0.3)
     assert changes == {}
+
+
+def test_instance_level_change_detection_restores_unmatched_objects():
+    stable_t1 = np.zeros((8, 8), dtype=np.uint8)
+    stable_t2 = np.zeros((8, 8), dtype=np.uint8)
+    stable_t1[1:3, 1:3] = 1
+    stable_t2[1:3, 1:3] = 1
+    disappeared = np.zeros((8, 8), dtype=np.uint8)
+    disappeared[5:7, 5:7] = 1
+    result = instance_level_changes(
+        {1: item(stable_t1), 2: item(disappeared)},
+        {1: item(stable_t2)},
+        stable_t1.shape,
+        overlap_threshold=0.3,
+    )
+    np.testing.assert_array_equal(result, disappeared)
+
+
+def test_instance_level_components_use_eight_connectivity_and_area_filter():
+    diagonal = np.zeros((5, 5), dtype=np.uint8)
+    diagonal[1, 1] = diagonal[2, 2] = 1
+    result = instance_level_changes(
+        {1: item(diagonal)}, {}, diagonal.shape, minimum_object_area=2
+    )
+    np.testing.assert_array_equal(result, diagonal)
